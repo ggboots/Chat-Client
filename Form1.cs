@@ -17,5 +17,19 @@ namespace ChatMessageApp
             InitializeComponent();
         }
 
+        private void HostServerButton_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void JoinServerButton_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void SendButton_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
