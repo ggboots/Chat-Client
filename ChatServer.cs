@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net.Sockets;
 using System.Windows.Forms;
+using System.Net;
 
 namespace ChatMessageApp
 {
@@ -27,6 +28,16 @@ namespace ChatMessageApp
 
         public void SetupServer()
         {
+            chatTextBox.Text += "Server being setup ...\n";
+
+            // Bind Socket to listen on what port for incoming messages
+            serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
+            serverSocket.Listen(0);
+
+            // BeginAccept creates thread for connecting to
+            // AacceptCallback for when connection happens
+            serverSocket.BeginAccept(AcceptCallback, this);
+            chatTextBox.Text += "Server is Setup\n";
 
         }
         public void CloseAllSockets()
@@ -43,16 +54,85 @@ namespace ChatMessageApp
         // IAsyncResult is status of async operations
         public void AcceptCallback(IAsyncResult AR)
         {
+            // callback function for when client joins server
+            Socket joiningSocket;
+            try
+            {
+                joiningSocket = serverSocket.EndAccept(AR);
+            }
+            catch (ObjectDisposedException)
+            {
+                // catch specific problem
+                return;
+            }
+            catch(Exception)
+            {
+                // Will catch all issue
+                return;
+            }
+            ClientSocket newClientSocket = new ClientSocket();
+            newClientSocket.socket = serverSocket;
 
+            clientSockets.Add(newClientSocket);
+            joiningSocket.BeginReceive(newClientSocket.buffer, 0, ClientSocket.BUFFER_SIZE, SocketFlags.None, ReceiveCallback, newClientSocket);
+            AddToChat("Client Connected");
+
+            // Allows more than one client to join
+            serverSocket.BeginAccept(AcceptCallback, this);
         }
 
         public void ReceiveCallback(IAsyncResult AR)
         {
+            // Function called when data comes in from Client
+            ClientSocket currentClientSocket = (ClientSocket)AR.AsyncState;
+
+            int recieved;
+
+            try
+            {
+                recieved = currentClientSocket.socket.EndReceive(AR);
+            }
+            catch(SocketException ex)
+            {
+                AddToChat("Error -> " + ex.Message);
+                currentClientSocket.socket.Close();
+                clientSockets.Remove(currentClientSocket);
+                AddToChat("disconnecting client");
+                return;
+            }
+            byte[] recievedBuffer = new byte[recieved];
+            Array.Copy(currentClientSocket.buffer, recievedBuffer, recieved);
+
+            string text = Encoding.ASCII.GetString(recievedBuffer);
+            AddToChat(text);
+
+            if(text.ToLower() == "!commands")
+            {
+                byte[] data = Encoding.ASCII.GetBytes("Commands in program");
+                // list of all commands
+
+                currentClientSocket.socket.Send(data);
+            }
+            else if(text.ToLower() == "!exit")
+            {
+                currentClientSocket.socket.Shutdown(SocketShutdown.Both);
+                currentClientSocket.socket.Close();
+                clientSockets.Remove(currentClientSocket);
+                AddToChat("Client Disconnected");
+                return;
+            }
+            else
+            {
+                // for any message that are not commands
+                SendToAll(text, currentClientSocket);
+            }
+            currentClientSocket.socket.BeginReceive(currentClientSocket.buffer, 0, ClientSocket.BUFFER_SIZE, SocketFlags.None, ReceiveCallback, currentClientSocket);
 
         }
 
         public void SendToAll(string str, ClientSocket from)
         {
+            // send message to all users
             foreach(ClientSocket clientSocket in clientSockets)
             {
                 if(from == null || from.socket.Equals(clientSocket))
