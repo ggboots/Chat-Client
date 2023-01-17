@@ -165,7 +165,7 @@
             this.Controls.Add(this.ServerPortTextbox);
             this.Controls.Add(this.label1);
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "ChatMessage App";
             this.ResumeLayout(false);
             this.PerformLayout();
 
