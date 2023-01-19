@@ -17,17 +17,17 @@ namespace ChatMessageApp
         public int serverPort;
         public string serverIP;
 
-        public static ChatClient CreateInstance(int port, int serverPort, string serverIP, TextBox chatTextBox)
+        public static ChatClient CreateInstance(int port, int serverPort, string serverIP, TextBox chatTextbox)
         {
             // create tcp client object
             ChatClient tcp = null;
-            if(port > 0 && port < 65535 && serverPort > 0 && serverPort < 65535 && serverIP.Length < 0 && chatTextBox != null)
+            if(port > 0 && port < 65535 && serverPort > 0 && serverPort < 65535 && serverIP.Length > 0 && chatTextbox != null)
             {
                 tcp = new ChatClient();
                 tcp.port = port;
                 tcp.serverPort = serverPort;
                 tcp.serverIP = serverIP;
-                tcp.chatTextBox = chatTextBox;
+                tcp.chatTextbox = chatTextbox;
                 tcp.clientSocket.socket = tcp.socket;
             }
             return tcp;
@@ -46,7 +46,7 @@ namespace ChatMessageApp
                 }
                 catch (Exception ex)
                 {
-                    chatTextBox.Text += "Error: " + ex.Message + "\n";
+                    chatTextbox.Text += "Error: " + ex.Message + "\n";
                 }
             }
             AddToChat("Connected");

@@ -29,8 +29,8 @@
         private void InitializeComponent()
         {
             this.label1 = new System.Windows.Forms.Label();
-            this.ServerPortTextbox = new System.Windows.Forms.TextBox();
-            this.HostServerButton = new System.Windows.Forms.Button();
+            this.CreateServerTextbox = new System.Windows.Forms.TextBox();
+            this.CreateServerButton = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.JoinServerTextbox = new System.Windows.Forms.TextBox();
             this.JoinServerButton = new System.Windows.Forms.Button();
@@ -51,23 +51,23 @@
             this.label1.TabIndex = 0;
             this.label1.Text = "Port";
             // 
-            // ServerPortTextbox
+            // CreateServerTextbox
             // 
-            this.ServerPortTextbox.Location = new System.Drawing.Point(12, 46);
-            this.ServerPortTextbox.Name = "ServerPortTextbox";
-            this.ServerPortTextbox.Size = new System.Drawing.Size(138, 27);
-            this.ServerPortTextbox.TabIndex = 1;
-            this.ServerPortTextbox.Text = "9000";
+            this.CreateServerTextbox.Location = new System.Drawing.Point(12, 46);
+            this.CreateServerTextbox.Name = "CreateServerTextbox";
+            this.CreateServerTextbox.Size = new System.Drawing.Size(138, 27);
+            this.CreateServerTextbox.TabIndex = 1;
+            this.CreateServerTextbox.Text = "9000";
             // 
-            // HostServerButton
+            // CreateServerButton
             // 
-            this.HostServerButton.Location = new System.Drawing.Point(26, 79);
-            this.HostServerButton.Name = "HostServerButton";
-            this.HostServerButton.Size = new System.Drawing.Size(111, 29);
-            this.HostServerButton.TabIndex = 2;
-            this.HostServerButton.Text = "Host Server";
-            this.HostServerButton.UseVisualStyleBackColor = true;
-            this.HostServerButton.Click += new System.EventHandler(this.HostServerButton_Click);
+            this.CreateServerButton.Location = new System.Drawing.Point(26, 79);
+            this.CreateServerButton.Name = "CreateServerButton";
+            this.CreateServerButton.Size = new System.Drawing.Size(111, 29);
+            this.CreateServerButton.TabIndex = 2;
+            this.CreateServerButton.Text = "Create Server";
+            this.CreateServerButton.UseVisualStyleBackColor = true;
+            this.CreateServerButton.Click += new System.EventHandler(this.CreateServerButton_Click);
             // 
             // label2
             // 
@@ -84,6 +84,7 @@
             this.JoinServerTextbox.Name = "JoinServerTextbox";
             this.JoinServerTextbox.Size = new System.Drawing.Size(125, 27);
             this.JoinServerTextbox.TabIndex = 4;
+            this.JoinServerTextbox.Text = "9000";
             // 
             // JoinServerButton
             // 
@@ -161,8 +162,8 @@
             this.Controls.Add(this.JoinServerButton);
             this.Controls.Add(this.JoinServerTextbox);
             this.Controls.Add(this.label2);
-            this.Controls.Add(this.HostServerButton);
-            this.Controls.Add(this.ServerPortTextbox);
+            this.Controls.Add(this.CreateServerButton);
+            this.Controls.Add(this.CreateServerTextbox);
             this.Controls.Add(this.label1);
             this.Name = "Form1";
             this.Text = "ChatMessage App";
@@ -174,8 +175,8 @@
         #endregion
 
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox ServerPortTextbox;
-        private System.Windows.Forms.Button HostServerButton;
+        private System.Windows.Forms.TextBox CreateServerTextbox;
+        private System.Windows.Forms.Button CreateServerButton;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox JoinServerTextbox;
         private System.Windows.Forms.Button JoinServerButton;

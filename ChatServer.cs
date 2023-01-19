@@ -14,21 +14,21 @@ namespace ChatMessageApp
         //connected Clients
         public List<ClientSocket> clientSockets = new List<ClientSocket>();
 
-        public static ChatServer CreateInstance(int port, TextBox chatTextBox) 
+        public static ChatServer CreateInstance(int port, TextBox chatTextbox) 
         {
             ChatServer tcp = null;
-            if(port > 0 && port < 65535 && chatTextBox != null)
+            if(port > 0 && port < 65535 && chatTextbox != null)
             {
                 tcp = new ChatServer();
                 tcp.port = port;
-                tcp.chatTextBox = chatTextBox;
+                tcp.chatTextbox = chatTextbox;
             }
             return tcp;
         }
 
         public void SetupServer()
         {
-            chatTextBox.Text += "Server being setup ...\n";
+            chatTextbox.Text += "Server being setup ...\n";
 
             // Bind Socket to listen on what port for incoming messages
             serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
@@ -37,7 +37,7 @@ namespace ChatMessageApp
             // BeginAccept creates thread for connecting to
             // AacceptCallback for when connection happens
             serverSocket.BeginAccept(AcceptCallback, this);
-            chatTextBox.Text += "Server is Setup\n";
+            chatTextbox.Text += "Server is Setup\n";
 
         }
         public void CloseAllSockets()
@@ -60,18 +60,13 @@ namespace ChatMessageApp
             {
                 joiningSocket = serverSocket.EndAccept(AR);
             }
-            catch (ObjectDisposedException)
-            {
-                // catch specific problem
-                return;
-            }
-            catch(Exception)
+            catch (Exception)
             {
                 // Will catch all issue
                 return;
             }
             ClientSocket newClientSocket = new ClientSocket();
-            newClientSocket.socket = serverSocket;
+            newClientSocket.socket = joiningSocket;
 
             clientSockets.Add(newClientSocket);
             joiningSocket.BeginReceive(newClientSocket.buffer, 0, ClientSocket.BUFFER_SIZE, SocketFlags.None, ReceiveCallback, newClientSocket);
@@ -86,11 +81,10 @@ namespace ChatMessageApp
             // Function called when data comes in from Client
             ClientSocket currentClientSocket = (ClientSocket)AR.AsyncState;
 
-            int recieved;
-
+            int received;
             try
             {
-                recieved = currentClientSocket.socket.EndReceive(AR);
+                received = currentClientSocket.socket.EndReceive(AR);
             }
             catch(SocketException ex)
             {
@@ -100,10 +94,10 @@ namespace ChatMessageApp
                 AddToChat("disconnecting client");
                 return;
             }
-            byte[] recievedBuffer = new byte[recieved];
-            Array.Copy(currentClientSocket.buffer, recievedBuffer, recieved);
+            byte[] receivedBuffer = new byte[received];
+            Array.Copy(currentClientSocket.buffer, receivedBuffer, received);
 
-            string text = Encoding.ASCII.GetString(recievedBuffer);
+            string text = Encoding.ASCII.GetString(receivedBuffer);
             AddToChat(text);
 
             if(text.ToLower() == "!commands")
@@ -135,7 +129,7 @@ namespace ChatMessageApp
             // send message to all users
             foreach(ClientSocket clientSocket in clientSockets)
             {
-                if(from == null || from.socket.Equals(clientSocket))
+                if(from == null || !from.socket.Equals(clientSocket))
                 {
                     // ?? change to format which can be sent
                     byte[] data = Encoding.ASCII.GetBytes(str);

@@ -7,25 +7,25 @@ namespace ChatMessageApp
 {
     public class ChatHelperClass
     {
-        public TextBox chatTextBox;
+        public TextBox chatTextbox;
         // potential naming issue
         public int port;
 
         public void SetChat(string str)
         {
             //delegate takes it from current thread to main thread
-            chatTextBox.Invoke((Action)delegate
+            chatTextbox.Invoke((Action)delegate
             {
-                chatTextBox.Text = str;
-                chatTextBox.AppendText(Environment.NewLine);
+                chatTextbox.Text = str;
+                chatTextbox.AppendText(Environment.NewLine);
             });
         }
         public void AddToChat(string str)
         {
-            chatTextBox.Invoke((Action)delegate
+            chatTextbox.Invoke((Action)delegate
             {
-                chatTextBox.AppendText(str);
-                chatTextBox.AppendText(Environment.NewLine);
+                chatTextbox.AppendText(str);
+                chatTextbox.AppendText(Environment.NewLine);
             });
         }
     }
