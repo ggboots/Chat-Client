@@ -86,5 +86,15 @@ namespace ChatMessageApp
                 return false;
             }
         }
+
+        private void UsernameButton_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void PasswordButton_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

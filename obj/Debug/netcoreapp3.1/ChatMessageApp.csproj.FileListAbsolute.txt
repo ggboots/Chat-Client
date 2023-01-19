@@ -14,3 +14,4 @@ C:\Users\stephen\Desktop\ChatMessageApp\obj\Debug\netcoreapp3.1\ChatMessageApp.c
 C:\Users\stephen\Desktop\ChatMessageApp\obj\Debug\netcoreapp3.1\ChatMessageApp.dll
 C:\Users\stephen\Desktop\ChatMessageApp\obj\Debug\netcoreapp3.1\ChatMessageApp.pdb
 C:\Users\stephen\Desktop\ChatMessageApp\obj\Debug\netcoreapp3.1\ChatMessageApp.genruntimeconfig.cache
+C:\Users\stephen\Desktop\ChatMessageApp\obj\Debug\netcoreapp3.1\ChatMessageApp.Properties.Resources.resources
