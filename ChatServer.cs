@@ -10,8 +10,6 @@ namespace ChatMessageApp
     public class ChatServer : ChatHelperClass
     {
         public Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-        //connected Clients
         public List<ClientSocket> clientSockets = new List<ClientSocket>();
 
         public static ChatServer CreateInstance(int port, TextBox chatTextbox) 
@@ -34,8 +32,6 @@ namespace ChatMessageApp
             serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
             serverSocket.Listen(0);
 
-            // BeginAccept creates thread for connecting to
-            // AacceptCallback for when connection happens
             serverSocket.BeginAccept(AcceptCallback, this);
             chatTextbox.Text += "Server is Setup\n";
 
@@ -60,7 +56,7 @@ namespace ChatMessageApp
             {
                 joiningSocket = serverSocket.EndAccept(AR);
             }
-            catch (Exception)
+            catch (ObjectDisposedException)
             {
                 // Will catch all issue
                 return;
@@ -71,8 +67,7 @@ namespace ChatMessageApp
             clientSockets.Add(newClientSocket);
             joiningSocket.BeginReceive(newClientSocket.buffer, 0, ClientSocket.BUFFER_SIZE, SocketFlags.None, ReceiveCallback, newClientSocket);
             AddToChat("Client Connected");
-
-            // Allows more than one client to join
+            // start next thread
             serverSocket.BeginAccept(AcceptCallback, this);
         }
 
@@ -80,6 +75,7 @@ namespace ChatMessageApp
         {
             // Function called when data comes in from Client
             ClientSocket currentClientSocket = (ClientSocket)AR.AsyncState;
+            string newUsername = currentClientSocket.username;
 
             int received;
             try
@@ -89,25 +85,334 @@ namespace ChatMessageApp
             catch(SocketException ex)
             {
                 AddToChat("Error -> " + ex.Message);
+                AddToChat("Client Disconnecting");
                 currentClientSocket.socket.Close();
                 clientSockets.Remove(currentClientSocket);
-                AddToChat("disconnecting client");
                 return;
             }
             byte[] receivedBuffer = new byte[received];
             Array.Copy(currentClientSocket.buffer, receivedBuffer, received);
 
             string text = Encoding.ASCII.GetString(receivedBuffer);
-            AddToChat(text);
+            // AddToChat(text);
 
-            if(text.ToLower() == "!commands")
+            //Kick Command
+            if(currentClientSocket.toBeKicked == true)
             {
-                byte[] data = Encoding.ASCII.GetBytes("Commands in program");
-                // list of all commands
+                AddToChat(newUsername + " has Disconnected");
+                byte[] data = Encoding.ASCII.GetBytes("you have been kicked");
+                currentClientSocket.socket.Send(data);
+                currentClientSocket.socket.Shutdown(SocketShutdown.Both);
+                currentClientSocket.socket.Close();
+                clientSockets.Remove(currentClientSocket);
+            }
+            else
+            {
+                AddToChat(newUsername + " " + text);
+            }
 
+            //
+            // User commands
+            if (text.ToLower() == "!commands")
+            {
+                string nl = System.Environment.NewLine; //Prevent Repeating self
+                byte[] data = Encoding.ASCII.GetBytes("------ USER COMMANDS --------" + nl + "!username +> Allows user to choose Username when first Joined" + nl + "!user => Rename user's name" + nl + "!about => infomation about the Server" + nl + "!who => Check whos in the server" + nl + "!whisper => directly communicate to a other user only" + nl + "!exit => quit program" + nl + "CUSTOM COMMANDS" + nl + "!shout => message to upper cases to shout at other users directly " + nl +
+                "------ FOR MODERATORS -------" + nl + "!mod => Designate user as mod" + nl + "!mods => check number of mods in server" + nl + "!kick => ONLY for MODS, kick cleints from servers");
+                currentClientSocket.socket.Send(data);
+                AddToChat("Commands sent to " + currentClientSocket.username);
+            }
+            // username command
+            else if (text.Contains("!username") == true)
+            {
+
+                if (currentClientSocket.hasSetUsername == false)
+                {
+                    if (text.Length == 9)
+                    {
+                        byte[] data = Encoding.ASCII.GetBytes("Enter Username after command");
+                        currentClientSocket.socket.Send(data);
+                    }
+                    else if (text.Length >= 10)
+                    {
+                        //string commandNameSeparation = Regex.Replace(text.Split()[0], "@[^0-9a-zA-Z]+", ""); 
+                        string[] commandNameSeparation = text.Split(" ");
+                        string clientUsername = commandNameSeparation[1];
+
+                        bool found = false;
+
+                        foreach (ClientSocket clientsocket in clientSockets)
+                        {
+                            if (clientUsername == clientsocket.username)
+                            {
+                                found = true;
+                                currentClientSocket.disconnecting = true;
+                                currentClientSocket.socket.Shutdown(SocketShutdown.Both);
+                                currentClientSocket.socket.Close();
+                                clientSockets.Remove(currentClientSocket);
+                                AddToChat("ERROR: Username Already in Use");
+                                break;
+                            }
+                        }
+                        if (!found)
+                        {
+                            currentClientSocket.username = clientUsername;
+                            currentClientSocket.hasSetUsername = true;
+                            byte[] data = Encoding.ASCII.GetBytes("Username Good: " + currentClientSocket.username);
+                            currentClientSocket.socket.Send(data);
+                            SendToAll("Welcome " + currentClientSocket.username, currentClientSocket);
+                        }
+                    }
+                }
+                else if (currentClientSocket.hasSetUsername == true)
+                {
+                    byte[] data = Encoding.ASCII.GetBytes("use command [!user] to change Username");
+                    currentClientSocket.socket.Send(data);
+                }
+            }
+            // user command
+            else if (text.Contains("!user") == true)
+            {
+                if (text.Length == 5)
+                {
+                    byte[] data = Encoding.ASCII.GetBytes("Please enter username you would like to change to");
+                    currentClientSocket.socket.Send(data);
+
+                }
+                else if (text.Length >= 6)
+                {
+
+                    //string commandNameSeparation = Regex.Replace(text.Split()[0], "@[^0-9a-zA-Z]+", ""); 
+                    string[] commandNameSeparation = text.Split(" ");
+                    string clientUsername = commandNameSeparation[1];
+
+                    bool found = false;
+                    foreach (ClientSocket clientsocket in clientSockets)
+                    {
+                        if (clientUsername == clientsocket.username)
+                        {
+                            byte[] data = Encoding.ASCII.GetBytes("Username Already in Use, try again");
+                            currentClientSocket.socket.Send(data);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        string oldClientUsername = currentClientSocket.username;
+                        currentClientSocket.username = clientUsername;
+                        SendToAll("Name Change " + oldClientUsername + " -> " + currentClientSocket.username, currentClientSocket);
+                    }
+                }
+
+            }
+            // who command
+            else if (text.ToLower() == "!who")
+            {
+                byte[] dataHeader = Encoding.ASCII.GetBytes("Clients in Server: ");
+                currentClientSocket.socket.Send(dataHeader);
+                foreach (ClientSocket clientSocket in clientSockets)
+                {
+                    string currentClient = clientSocket.username;
+                    byte[] data = Encoding.ASCII.GetBytes(currentClient + Environment.NewLine);
+                    currentClientSocket.socket.Send(data);
+                }
+            }
+            // about command
+            else if (text.ToLower() == "!about")
+            {
+                byte[] data = Encoding.ASCII.GetBytes("This is ChatBox, Made by George");
                 currentClientSocket.socket.Send(data);
             }
-            else if(text.ToLower() == "!exit")
+            // whisper command
+            else if (text.Contains("!whisper") == true)
+            {
+                if (text.Length == 8)
+                {
+                    byte[] data = Encoding.ASCII.GetBytes("Enter Username after command");
+                    currentClientSocket.socket.Send(data);
+                }
+                else if (text.Length >= 10)
+                {
+                    string[] commandSeparation = text.Split(" ");
+                    string whisperToUser = commandSeparation[1];
+
+                    bool found = false;
+                    foreach (ClientSocket clientsocket in clientSockets)
+                    {
+                        if (whisperToUser == clientsocket.username)
+                        {
+                            found = true;
+                            List<string> whisperMessage = new List<string>();
+                            string whisperMessageTemplate = currentClientSocket.username + ": ";
+                            for (int i = 2; i < commandSeparation.Length; i++)
+                            {
+
+                                whisperMessage.Add(commandSeparation[i]);
+                                whisperMessageTemplate += commandSeparation[i] + " ";
+                            }
+                            string[] whisperMessageToArray = whisperMessage.ToArray();
+                            byte[] data = Encoding.ASCII.GetBytes(whisperMessageTemplate);
+                            clientsocket.socket.Send(data);
+
+                        }
+                    }
+                    if (!found)
+                    {
+                        byte[] data = Encoding.ASCII.GetBytes("User Not found, try again");
+                        currentClientSocket.socket.Send(data);
+                    }
+                }
+            }
+            // shout command
+            else if (text.Contains("!shout") == true)
+            {
+                if (text.Length == 6)
+                {
+                    byte[] data = Encoding.ASCII.GetBytes("Enter Username after command");
+                    currentClientSocket.socket.Send(data);
+                }
+                else if (text.Length >= 7)
+                {
+                    string[] commandSeparation = text.Split(" ");
+                    string shoutToUser = commandSeparation[1];
+
+                    bool found = false;
+                    foreach (ClientSocket clientsocket in clientSockets)
+                    {
+                        if (shoutToUser == clientsocket.username)
+                        {
+                            found = true;
+                            List<string> shoutMessage = new List<string>();
+                            string shoutMessageTemplate = currentClientSocket.username + ": ";
+                            for (int i = 2; i < commandSeparation.Length; i++)
+                            {
+
+                                shoutMessage.Add(commandSeparation[i]);
+                                shoutMessageTemplate += commandSeparation[i].ToUpper() + " ";
+                            }
+                            string[] whisperMessageToArray = shoutMessage.ToArray();
+                            byte[] data = Encoding.ASCII.GetBytes(shoutMessageTemplate);
+                            clientsocket.socket.Send(data);
+
+                        }
+                    }
+                    if (!found)
+                    {
+                        byte[] data = Encoding.ASCII.GetBytes("User Not found, try again");
+                        currentClientSocket.socket.Send(data);
+                    }
+                }
+            }
+            // clear command
+            else if (text.ToLower() == "!clear")
+            {
+                foreach (ClientSocket clientsocket in clientSockets)
+                {
+                    if (clientsocket == currentClientSocket)
+                    {
+                        SetChat("Clear");
+                    }
+                }
+            }
+            //
+            // MODERATOR Commands Below
+            // mods command
+            else if (text.ToLower() == "!mods")
+            {
+                if (currentClientSocket.isModerator == true)
+                {
+
+                    foreach (ClientSocket clientsocket in clientSockets)
+                    {
+                        if (clientsocket.isModerator == true)
+                        {
+                            AddToChat(clientsocket.username);
+                        }
+                    }
+                }
+                else
+                {
+                    byte[] data = Encoding.ASCII.GetBytes("You do not have Mod priveledge");
+                    currentClientSocket.socket.Send(data);
+                }
+            }
+            // mod command
+            else if (text.Contains("!mod") == true)
+            {
+                byte[] data = Encoding.ASCII.GetBytes("You do not have Server priveledges");
+                currentClientSocket.socket.Send(data);
+
+                /*
+                string[] commandNameSeparation = text.Split(" ");
+                string clientUsername = commandNameSeparation[1];
+                bool found = false;
+                foreach (ClientSocket clientsocket in clientSockets)
+                {
+                    if (clientUsername == clientsocket.username)
+                    {
+                       
+                        if (currentClientSocket.isModerator == true)
+                        {
+                            currentClientSocket.isModerator = false;
+                            byte[] data = Encoding.ASCII.GetBytes("Was" + currentClientSocket.isModerator + ", Now false");
+                            currentClientSocket.socket.Send(data);
+                        }
+                        else if (currentClientSocket.isModerator == false)
+                        {
+                            currentClientSocket.isModerator = true;
+                            byte[] data = Encoding.ASCII.GetBytes("Was" + currentClientSocket.isModerator + ", Now True");
+                            currentClientSocket.socket.Send(data);
+                        }
+                        found = true;
+                    }
+                }
+                if (!found)
+                {
+                    AddToChat("User Not found");
+                }
+                */
+            }
+            // kick command
+            else if (text.Contains("!kick") == true)
+            {
+                if (text.Length == 5)
+                {
+                    byte[] data = Encoding.ASCII.GetBytes("Enter Username of user you would like to kick");
+                    currentClientSocket.socket.Send(data);
+                }
+                else if (text.Length >= 6)
+                {
+                    if (currentClientSocket.isModerator == true)
+                    {
+                        string[] commandSeparation = text.Split(" ");
+                        string userToKick = commandSeparation[1];
+
+                        bool found = false;
+                        foreach (ClientSocket clientsocket in clientSockets)
+                        {
+                            if (userToKick == clientsocket.username)
+                            {
+                                clientsocket.toBeKicked = true;
+                                AddToChat(userToKick + "has been Kick");
+                                return;
+                            }
+                        }
+                        if (!found)
+                        {
+                            byte[] data = Encoding.ASCII.GetBytes("User Not found, try again");
+                            currentClientSocket.socket.Send(data);
+                        }
+                    }
+                    else if (currentClientSocket.isModerator == false)
+                    {
+                        byte[] data = Encoding.ASCII.GetBytes("You do not have Mod Priv");
+                        currentClientSocket.socket.Send(data);
+                    }
+                }
+            }
+
+
+            else if (text.ToLower() == "!exit")
             {
                 currentClientSocket.socket.Shutdown(SocketShutdown.Both);
                 currentClientSocket.socket.Close();
@@ -115,12 +420,22 @@ namespace ChatMessageApp
                 AddToChat("Client Disconnected");
                 return;
             }
+
+
+            // for any message that are not commands
             else
             {
-                // for any message that are not commands
-                SendToAll(text, currentClientSocket);
+                SendToAll(newUsername + ": " +text, currentClientSocket);
             }
-            currentClientSocket.socket.BeginReceive(currentClientSocket.buffer, 0, ClientSocket.BUFFER_SIZE, SocketFlags.None, ReceiveCallback, currentClientSocket);
+            
+            if (currentClientSocket.disconnecting == false)
+            {
+                currentClientSocket.socket.BeginReceive(currentClientSocket.buffer, 0, ClientSocket.BUFFER_SIZE, SocketFlags.None, ReceiveCallback, currentClientSocket);
+            }
+            else
+            {
+                return;
+            }
 
         }
 
@@ -136,6 +451,76 @@ namespace ChatMessageApp
                     clientSocket.socket.Send(data);
                 }
             }
+
+            //
+            //Server Commands + Moderator commands
+            if (str.ToLower() == "!mods")
+            {
+                foreach (ClientSocket clientsocket in clientSockets)
+                {
+                    if (clientsocket.isModerator == true)
+                    {
+                        AddToChat(clientsocket.username);
+                    }
+                }
+            }
+            else if (str.Contains("!mod") == true)
+            {
+                string[] commandNameSeparation = str.Split(" ");
+                string clientUsername = commandNameSeparation[1];
+
+                foreach (ClientSocket clientsocket in clientSockets)
+                {
+                    if (clientUsername == clientsocket.username)
+                    {
+
+                        if (clientsocket.isModerator == false)
+                        {
+                            clientsocket.isModerator = true;
+                            byte[] data = Encoding.ASCII.GetBytes(" +++ You are now a Mod");
+                            clientsocket.socket.Send(data);
+                        }
+                        else if (clientsocket.isModerator == true)
+                        {
+                            clientsocket.isModerator = false;
+                            byte[] data = Encoding.ASCII.GetBytes(" +++ You are not longer a Mod");
+                            clientsocket.socket.Send(data);
+                        }
+                    }
+                }
+            }
+            else if (str.Contains("!kick") == true)
+            {
+                if (str.Length == 5)
+                {
+                    AddToChat("Enter Username of user you would like to kick");
+
+                }
+                else if (str.Length >= 6)
+                {
+                    string[] commandSeparation = str.Split(" ");
+                    string userToKick = commandSeparation[1];
+
+                    bool found = false;
+                    foreach (ClientSocket clientsocket in clientSockets)
+                    {
+                        if (userToKick == clientsocket.username)
+                        {
+                            clientsocket.disconnecting = true;
+                            AddToChat(userToKick + " has been Kick");
+                            return;
+
+                        }
+                    }
+                    if (!found)
+                    {
+                        AddToChat("User Not found, try again");
+                    }
+                }
+
+            }
+
+
         }
     }
 }

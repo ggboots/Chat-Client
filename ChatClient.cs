@@ -19,7 +19,6 @@ namespace ChatMessageApp
 
         public static ChatClient CreateInstance(int port, int serverPort, string serverIP, TextBox chatTextbox)
         {
-            // create tcp client object
             ChatClient tcp = null;
             if(port > 0 && port < 65535 && serverPort > 0 && serverPort < 65535 && serverIP.Length > 0 && chatTextbox != null)
             {
@@ -49,14 +48,15 @@ namespace ChatMessageApp
                     chatTextbox.Text += "Error: " + ex.Message + "\n";
                 }
             }
-            AddToChat("Connected");
+            SetChat("");
+            AddToChat("Connected " + System.Environment.NewLine + " ||||||||||| WELCOME TO CHATBOX ||||||||||| \n");
+            AddToChat(" +++ Type !username to choose name");
             clientSocket.socket.BeginReceive(clientSocket.buffer, 0, ClientSocket.BUFFER_SIZE, SocketFlags.None, ReceiveCallBack, clientSocket);
             
         }
 
         public void ReceiveCallBack(IAsyncResult AR)
         {
-            // everytime data comes in from server, read data and display to chatbox
             ClientSocket currentClientSocket = (ClientSocket)AR.AsyncState;
 
             int received;
