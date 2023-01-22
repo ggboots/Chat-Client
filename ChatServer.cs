@@ -4,6 +4,9 @@ using System.Text;
 using System.Net.Sockets;
 using System.Windows.Forms;
 using System.Net;
+using System.Threading;
+using System.Text.RegularExpressions;
+using System.Data.SQLite;
 
 namespace ChatMessageApp
 {
@@ -11,6 +14,9 @@ namespace ChatMessageApp
     {
         public Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         public List<ClientSocket> clientSockets = new List<ClientSocket>();
+
+        // create DB
+        public string connectDB = "Data Source=ChatMessageApp.db";
 
         public static ChatServer CreateInstance(int port, TextBox chatTextbox) 
         {
@@ -26,14 +32,15 @@ namespace ChatMessageApp
 
         public void SetupServer()
         {
-            chatTextbox.Text += "Server being setup ...\n";
+            chatTextbox.Text += "Server being setup ..." + Environment.NewLine;
 
             // Bind Socket to listen on what port for incoming messages
             serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
             serverSocket.Listen(0);
 
             serverSocket.BeginAccept(AcceptCallback, this);
-            chatTextbox.Text += "Server is Setup\n";
+            chatTextbox.Text += "Server Setup Complete" + Environment.NewLine;
+
 
         }
         public void CloseAllSockets()
@@ -58,7 +65,6 @@ namespace ChatMessageApp
             }
             catch (ObjectDisposedException)
             {
-                // Will catch all issue
                 return;
             }
             ClientSocket newClientSocket = new ClientSocket();
@@ -85,7 +91,7 @@ namespace ChatMessageApp
             catch(SocketException ex)
             {
                 AddToChat("Error -> " + ex.Message);
-                AddToChat("Client Disconnecting");
+                AddToChat("Error occurred, disconnecting client");
                 currentClientSocket.socket.Close();
                 clientSockets.Remove(currentClientSocket);
                 return;
@@ -105,10 +111,6 @@ namespace ChatMessageApp
                 currentClientSocket.socket.Shutdown(SocketShutdown.Both);
                 currentClientSocket.socket.Close();
                 clientSockets.Remove(currentClientSocket);
-            }
-            else
-            {
-                AddToChat(newUsername + " " + text);
             }
 
             //
@@ -134,7 +136,6 @@ namespace ChatMessageApp
                     }
                     else if (text.Length >= 10)
                     {
-                        //string commandNameSeparation = Regex.Replace(text.Split()[0], "@[^0-9a-zA-Z]+", ""); 
                         string[] commandNameSeparation = text.Split(" ");
                         string clientUsername = commandNameSeparation[1];
 
@@ -149,7 +150,7 @@ namespace ChatMessageApp
                                 currentClientSocket.socket.Shutdown(SocketShutdown.Both);
                                 currentClientSocket.socket.Close();
                                 clientSockets.Remove(currentClientSocket);
-                                AddToChat("ERROR: Username Already in Use");
+                                AddToChat("Username Already in Use");
                                 break;
                             }
                         }
@@ -169,6 +170,17 @@ namespace ChatMessageApp
                     currentClientSocket.socket.Send(data);
                 }
             }
+
+            // Login Command
+            else if (text.Contains("!login") == true)
+            {
+                if (text.Length == 6)
+                {
+                    byte[] data = Encoding.ASCII.GetBytes("Enter as -> !login [username] [password]");
+                    currentClientSocket.socket.Send(data);
+                }
+            }
+
             // user command
             else if (text.Contains("!user") == true)
             {
@@ -341,36 +353,6 @@ namespace ChatMessageApp
             {
                 byte[] data = Encoding.ASCII.GetBytes("You do not have Server priveledges");
                 currentClientSocket.socket.Send(data);
-
-                /*
-                string[] commandNameSeparation = text.Split(" ");
-                string clientUsername = commandNameSeparation[1];
-                bool found = false;
-                foreach (ClientSocket clientsocket in clientSockets)
-                {
-                    if (clientUsername == clientsocket.username)
-                    {
-                       
-                        if (currentClientSocket.isModerator == true)
-                        {
-                            currentClientSocket.isModerator = false;
-                            byte[] data = Encoding.ASCII.GetBytes("Was" + currentClientSocket.isModerator + ", Now false");
-                            currentClientSocket.socket.Send(data);
-                        }
-                        else if (currentClientSocket.isModerator == false)
-                        {
-                            currentClientSocket.isModerator = true;
-                            byte[] data = Encoding.ASCII.GetBytes("Was" + currentClientSocket.isModerator + ", Now True");
-                            currentClientSocket.socket.Send(data);
-                        }
-                        found = true;
-                    }
-                }
-                if (!found)
-                {
-                    AddToChat("User Not found");
-                }
-                */
             }
             // kick command
             else if (text.Contains("!kick") == true)
@@ -425,7 +407,7 @@ namespace ChatMessageApp
             // for any message that are not commands
             else
             {
-                SendToAll(newUsername + ": " +text, currentClientSocket);
+                SendToAll(newUsername + ": " + text, currentClientSocket);
             }
             
             if (currentClientSocket.disconnecting == false)

@@ -15,6 +15,8 @@ namespace ChatMessageApp
         ChatServer server = null;
         ChatClient client = null;
 
+        public string connectionString = "Data Source=ChatBoxDB.db";
+
         public Form1()
         {
             InitializeComponent();

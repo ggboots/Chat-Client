@@ -51,6 +51,7 @@ namespace ChatMessageApp
             SetChat("");
             AddToChat("Connected " + System.Environment.NewLine + " ||||||||||| WELCOME TO CHATBOX ||||||||||| \n");
             AddToChat(" +++ Type !username to choose name");
+            AddToChat(" +++ Type !login if already made");
             clientSocket.socket.BeginReceive(clientSocket.buffer, 0, ClientSocket.BUFFER_SIZE, SocketFlags.None, ReceiveCallBack, clientSocket);
             
         }
@@ -63,6 +64,7 @@ namespace ChatMessageApp
             try
             {
                 received = currentClientSocket.socket.EndReceive(AR);
+                Console.WriteLine(received);
             }
             catch(SocketException ex)
             {

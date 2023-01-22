@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Windows.Forms; //. accessing UI elements
+using System.Windows.Forms;
 
 namespace ChatMessageApp
 {
     public class ChatHelperClass
     {
         public TextBox chatTextbox;
-        // potential naming issue
         public int port;
 
         public void SetChat(string str)

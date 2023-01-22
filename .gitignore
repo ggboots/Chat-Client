@@ -1,3 +1,14 @@
 #buildtime folders
+
+#VS required file, to store open files, breakpoints and other info about te state of .sln (solution)
+.vs
+
+#binary files, actual executable code for app
 bin
+
+#Object files, Compiled file but not linked yet
 obj	
+
+# https://stackoverflow.com/questions/48897191/what-is-the-vs-folder-used-for-in-visual-studio-solutions
+# https://stackoverflow.com/questions/5308491/what-are-the-obj-and-bin-folders-created-by-visual-studio-used-for
+# https://learn.microsoft.com/en-us/cpp/build/reference/file-types-created-for-visual-cpp-projects?view=msvc-170 
