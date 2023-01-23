@@ -16,7 +16,7 @@ namespace ChatMessageApp
         public List<ClientSocket> clientSockets = new List<ClientSocket>();
 
         // create DB
-        public string connectDB = "Data Source=ChatMessageApp.db";
+        public string connectDB = "Data Source=ChatMessageDB.db";
 
         public static ChatServer CreateInstance(int port, TextBox chatTextbox) 
         {
@@ -33,14 +33,25 @@ namespace ChatMessageApp
         public void SetupServer()
         {
             chatTextbox.Text += "Server being setup ..." + Environment.NewLine;
-
-            // Bind Socket to listen on what port for incoming messages
             serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
             serverSocket.Listen(0);
 
             serverSocket.BeginAccept(AcceptCallback, this);
             chatTextbox.Text += "Server Setup Complete" + Environment.NewLine;
 
+            // db creation
+            // use connection instead of db to follow SQlite syntax
+            SQLiteConnection connection = new SQLiteConnection(connectDB);
+            connection.Open();
+
+            string createDatabase = "CREATE TABLE IF NOT EXISTS ChatMessageDB(" +
+                "client_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Username TEXT, " +
+                "Password TEXT) ";
+            SQLiteCommand cmd = new SQLiteCommand(createDatabase, connection);
+            cmd.ExecuteNonQuery();
+
+            connection.Close();
 
         }
         public void CloseAllSockets()
@@ -54,7 +65,6 @@ namespace ChatMessageApp
             serverSocket.Close();
         }
 
-        // IAsyncResult is status of async operations
         public void AcceptCallback(IAsyncResult AR)
         {
             // callback function for when client joins server
@@ -69,8 +79,8 @@ namespace ChatMessageApp
             }
             ClientSocket newClientSocket = new ClientSocket();
             newClientSocket.socket = joiningSocket;
-
             clientSockets.Add(newClientSocket);
+
             joiningSocket.BeginReceive(newClientSocket.buffer, 0, ClientSocket.BUFFER_SIZE, SocketFlags.None, ReceiveCallback, newClientSocket);
             AddToChat("Client Connected");
             // start next thread
@@ -100,7 +110,6 @@ namespace ChatMessageApp
             Array.Copy(currentClientSocket.buffer, receivedBuffer, received);
 
             string text = Encoding.ASCII.GetString(receivedBuffer);
-            // AddToChat(text);
 
             //Kick Command
             if(currentClientSocket.toBeKicked == true)
@@ -118,15 +127,14 @@ namespace ChatMessageApp
             if (text.ToLower() == "!commands")
             {
                 string nl = System.Environment.NewLine; //Prevent Repeating self
-                byte[] data = Encoding.ASCII.GetBytes("------ USER COMMANDS --------" + nl + "!username +> Allows user to choose Username when first Joined" + nl + "!user => Rename user's name" + nl + "!about => infomation about the Server" + nl + "!who => Check whos in the server" + nl + "!whisper => directly communicate to a other user only" + nl + "!exit => quit program" + nl + "CUSTOM COMMANDS" + nl + "!shout => message to upper cases to shout at other users directly " + nl +
-                "------ FOR MODERATORS -------" + nl + "!mod => Designate user as mod" + nl + "!mods => check number of mods in server" + nl + "!kick => ONLY for MODS, kick cleints from servers");
+                byte[] data = Encoding.ASCII.GetBytes(nl + "------ USER COMMANDS --------" + nl + "!username => Allows user to choose Username when first Joined" + nl + "!user => Rename user's name" + nl + "!about => infomation about the Server" + nl + "!who => Check whos in the server" + nl + "!whisper => directly communicate to a other user only" + nl + "!shout => message to upper cases to shout at other users directly " + nl + "!exit => quit program" + nl +
+                nl + "------ FOR MODERATORS -------" + nl + "!mod => Designate user as mod" + nl + "!mods => check number of mods in server" + nl + "!kick => ONLY for MODS, kick cleints from servers" + nl);
                 currentClientSocket.socket.Send(data);
                 AddToChat("Commands sent to " + currentClientSocket.username);
             }
             // username command
             else if (text.Contains("!username") == true)
             {
-
                 if (currentClientSocket.hasSetUsername == false)
                 {
                     if (text.Length == 9)
@@ -139,8 +147,15 @@ namespace ChatMessageApp
                         string[] commandNameSeparation = text.Split(" ");
                         string clientUsername = commandNameSeparation[1];
 
-                        bool found = false;
+                        SQLiteConnection connection = new SQLiteConnection(connectDB);
+                        connection.Open();
 
+                        SQLiteCommand cmd = new SQLiteCommand("SELECT username FROM ChatMessageDB;", connection);
+                        cmd.ExecuteNonQuery();
+
+                        SQLiteDataReader rdr = cmd.ExecuteReader();
+
+                        bool found = false;
                         foreach (ClientSocket clientsocket in clientSockets)
                         {
                             if (clientUsername == clientsocket.username)
@@ -153,21 +168,64 @@ namespace ChatMessageApp
                                 AddToChat("Username Already in Use");
                                 break;
                             }
+                            while (rdr.Read())
+                            {
+                                string usernameCheck = rdr.GetString(0);
+                                if(usernameCheck == clientUsername)
+                                {
+                                    found = true;
+                                    byte[] data = Encoding.ASCII.GetBytes("username already in use");
+                                    currentClientSocket.socket.Send(data);
+                                    break;
+                                }
+                            }
                         }
                         if (!found)
                         {
                             currentClientSocket.username = clientUsername;
                             currentClientSocket.hasSetUsername = true;
-                            byte[] data = Encoding.ASCII.GetBytes("Username Good: " + currentClientSocket.username);
+                            byte[] data = Encoding.ASCII.GetBytes($"Username set as {currentClientSocket.username}, set a !password to join");
                             currentClientSocket.socket.Send(data);
                             SendToAll("Welcome " + currentClientSocket.username, currentClientSocket);
                         }
+                        rdr.Close();
+                        cmd.ExecuteNonQuery();
+                        connection.Close();
                     }
                 }
                 else if (currentClientSocket.hasSetUsername == true)
                 {
                     byte[] data = Encoding.ASCII.GetBytes("use command [!user] to change Username");
                     currentClientSocket.socket.Send(data);
+                }
+            }
+
+            // password command
+            else if (text.Contains("!password") == true)
+            {
+                if (text.Length == 9)
+                {
+                    byte[] data = Encoding.ASCII.GetBytes("Enter password after command");
+                    currentClientSocket.socket.Send(data);
+                }
+                else if (text.Length >= 10)
+                {
+                    string[] commandNameSeparation = text.Split(" ");
+                    string clientPassword = commandNameSeparation[1];
+                    currentClientSocket.password = clientPassword;
+
+
+                    SQLiteConnection connection = new SQLiteConnection(connectDB);
+                    connection.Open();
+
+                    SQLiteCommand cmd = new SQLiteCommand($"INSERT INTO ChatMessageDB(Username, Password) VALUES ('{currentClientSocket.username}','{clientPassword}')", connection);
+                    cmd.ExecuteNonQuery();
+                    connection.Close();
+
+                    currentClientSocket.userState = ClientState.chatting;
+                    byte[] data = Encoding.ASCII.GetBytes("Login saved, your now able to chat" + System.Environment.NewLine + System.Environment.NewLine + " ||||||||||| WELCOME TO CHATBOX ||||||||||| " + System.Environment.NewLine + System.Environment.NewLine + " use !commands for more information");
+                    currentClientSocket.socket.Send(data);
+                    SendToAll($"Welcome {currentClientSocket.username} :)", currentClientSocket);
                 }
             }
 
@@ -178,6 +236,61 @@ namespace ChatMessageApp
                 {
                     byte[] data = Encoding.ASCII.GetBytes("Enter as -> !login [username] [password]");
                     currentClientSocket.socket.Send(data);
+                }
+                else
+                {
+                    string[] commandSeparation = text.Split(" ");
+                    string loginUsername = commandSeparation[1];
+                    string loginPassword = commandSeparation[2];
+
+                    SQLiteConnection connection = new SQLiteConnection(connectDB);
+                    connection.Open();
+                    SQLiteCommand cmd = new SQLiteCommand("SELECT * FROM ChatMessageDB;", connection);
+                    cmd.ExecuteNonQuery();
+
+                    SQLiteDataReader rdr = cmd.ExecuteReader(); // loop through each row at a time and output the data
+
+                    while (rdr.Read()) // Read(), goes row by row, when it ends it returns false
+                    {
+                        int id = rdr.GetInt32(0);
+                        string usernameCheck = rdr.GetString(1);
+                        string passwordCheck = rdr.GetString(2);
+                        if (usernameCheck != loginUsername)
+                        {
+                            // leave empyty, so it can move onto next line
+                        }
+                        else if (passwordCheck != loginPassword)
+                        {
+                            byte[] data = Encoding.ASCII.GetBytes("Password incorrect");
+                            currentClientSocket.socket.Send(data);
+                            break;
+                        }
+                        else if (usernameCheck == loginUsername && passwordCheck == loginPassword)
+                        {
+                            currentClientSocket.username = loginUsername; currentClientSocket.password = loginPassword;
+                            currentClientSocket.hasSetUsername = true;
+
+                            currentClientSocket.userState = ClientState.chatting;
+                            byte[] clientDataUpdate = Encoding.ASCII.GetBytes("*loginSuccess"); // sends Command to Client
+                            currentClientSocket.socket.Send(clientDataUpdate);
+
+                            byte[] data = Encoding.ASCII.GetBytes(System.Environment.NewLine + System.Environment.NewLine + " ||||||||||| WELCOME TO CHATBOX ||||||||||| " + System.Environment.NewLine);
+                            currentClientSocket.socket.Send(data);
+                            SendToAll($"Hello, {currentClientSocket.username} :)", currentClientSocket);
+                            break;
+                        }
+                    }
+                    // after last row, inform client that username was not in db
+                    if (rdr.Read() == false && currentClientSocket.hasSetUsername == false)
+                    {
+                        byte[] data = Encoding.ASCII.GetBytes("Username not Found");
+                        currentClientSocket.socket.Send(data);
+                    }
+
+                    rdr.Close();
+                    cmd.ExecuteNonQuery();
+                    connection.Close();
+
                 }
             }
 
@@ -232,7 +345,7 @@ namespace ChatMessageApp
             // about command
             else if (text.ToLower() == "!about")
             {
-                byte[] data = Encoding.ASCII.GetBytes("This is ChatBox, Made by George");
+                byte[] data = Encoding.ASCII.GetBytes("This is ChatMessage App Project, Made by George Boots :)");
                 currentClientSocket.socket.Send(data);
             }
             // whisper command
@@ -499,10 +612,7 @@ namespace ChatMessageApp
                         AddToChat("User Not found, try again");
                     }
                 }
-
             }
-
-
         }
     }
 }

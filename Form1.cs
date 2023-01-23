@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.SQLite;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -15,7 +16,7 @@ namespace ChatMessageApp
         ChatServer server = null;
         ChatClient client = null;
 
-        public string connectionString = "Data Source=ChatBoxDB.db";
+        public string connectDB = "Data Source=ChatMessageDB.db";
 
         public Form1()
         {
@@ -91,12 +92,38 @@ namespace ChatMessageApp
 
         private void UsernameButton_Click(object sender, EventArgs e)
         {
+            SQLiteConnection connection = new SQLiteConnection(connectDB);
+            connection.Open();
+
 
         }
 
         private void PasswordButton_Click(object sender, EventArgs e)
         {
+            SQLiteConnection connection = new SQLiteConnection(connectDB);
+            connection.Open();
 
+            SQLiteCommand cmd = new SQLiteCommand("SELECT * FROM ChatMessageDB;", connection);
+            cmd.ExecuteNonQuery();
+
+            SQLiteDataReader rdr = cmd.ExecuteReader();
+
+            while (rdr.Read())
+            {
+                {
+                    //int id = rdr.GetInt32(0);
+                    //string usernameCheck = rdr.GetString(1);
+                    //string passwordCheck = rdr.GetString(2);
+                    //if (usernameCheck != loginUsername) --> userTextbox
+                    //{
+                        // leave empyty, so it can move onto next line
+                    //}
+                    //else if (passwordCheck != loginPassword) --> passwordTextbox
+                    //{
+                      //  ChatTextbox.Text += "Password Incorrect";
+                      break;
+                }
+            }
         }
     }
 }

@@ -215,7 +215,7 @@
             this.PasswordButton.Name = "PasswordButton";
             this.PasswordButton.Size = new System.Drawing.Size(120, 29);
             this.PasswordButton.TabIndex = 3;
-            this.PasswordButton.Text = "Set Password";
+            this.PasswordButton.Text = "Login";
             this.PasswordButton.UseVisualStyleBackColor = true;
             this.PasswordButton.Click += new System.EventHandler(this.PasswordButton_Click);
             // 
