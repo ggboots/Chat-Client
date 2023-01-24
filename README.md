@@ -1,7 +1,6 @@
 # Chat Client App
 
-<img src="https://github.com/ggboots/Chat-Client/blob/main/src/cSharp_logo.png" alt="CSharpLogo" style="width:100px;"/>
-<img src="https://github.com/ggboots/Chat-Client/blob/main/src/netcore_logo.png" alt="netcore" style="width:100px;"/>
+<img src="https://github.com/ggboots/Chat-Client/blob/main/src/cSharp_logo.png" alt="CSharpLogo" style="width:64px;"/><img src="https://github.com/ggboots/Chat-Client/blob/main/src/netcore_logo.png" alt="netcore" style="width:64px;"/>
 Simple Chat Application for Users to message each other, the program is server so the server establishes a Socket for each Client to connect to its port, data is passed around using TCP protocol, 
 the chat features user command which can be used to create and save usernames to a database or establish users as Moderator, so that they can kick users from chat
 
